@@ -38,7 +38,7 @@ apps:
     tool:
       env: METABASE_VERSION
       # renovate: datasource=github-releases depName=metabase/metabase
-      version: v0.63.18
+      version: v0.63.19
 
   # Sans champ database, la base est seulement surveillee : une version plus
   # recente disponible est signalee, rien n'est monte.
@@ -52,4 +52,4 @@ apps:
     tool:
       env: METABASE_VERSION
       # renovate: datasource=github-releases depName=metabase/metabase
-      version: v0.63.18
+      version: v0.63.19
