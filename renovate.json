@@ -11,5 +11,37 @@
     "github-actions",
     "renovate-config"
   ],
+  "customManagers": [
+    {
+      "description": "TEMPORAIRE, a retirer dans la PR qui monte les presets a la release suivant v1.0.4 : le preset watcher y porte ce manager, et le garder en double ferait extraire chaque version deux fois. D'ici la, il fait avancer le clone du README, les liens vers la documentation et le $schema du manifeste dans la meme PR que les workflows.",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)[^/]+\\.md$/",
+        "/(^|/)manifest\\.yaml$/"
+      ],
+      "matchStrings": [
+        "--branch (?<currentValue>v\\d+\\.\\d+\\.\\d+) https://github\\.com/incubateur-ademe/scalingo-watcher\\b",
+        "github\\.com/incubateur-ademe/scalingo-watcher/(?:blob|tree)/(?<currentValue>v\\d+\\.\\d+\\.\\d+)/",
+        "raw\\.githubusercontent\\.com/incubateur-ademe/scalingo-watcher/(?<currentValue>v\\d+\\.\\d+\\.\\d+)/"
+      ],
+      "depNameTemplate": "incubateur-ademe/scalingo-watcher",
+      "datasourceTemplate": "github-tags",
+      "depTypeTemplate": "documentation"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "TEMPORAIRE, a retirer avec le customManager ci-dessus : range ses versions dans la PR scalingo-watcher, avec le meme delai et sans automerge.",
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchPackageNames": [
+        "incubateur-ademe/scalingo-watcher"
+      ],
+      "groupName": "scalingo-watcher",
+      "minimumReleaseAge": "1 day",
+      "automerge": false
+    }
+  ],
   "timezone": "Europe/Paris"
 }
