@@ -38,7 +38,7 @@ Dans le dépôt, au même emplacement que dans les workflows. Le dossier est
 ignoré par git.
 
 ```bash
-git clone --depth 1 --branch v1.0.4 https://github.com/incubateur-ademe/scalingo-watcher .scalingo-watcher
+git clone --depth 1 --branch v1.0.5 https://github.com/incubateur-ademe/scalingo-watcher .scalingo-watcher
 pnpm --dir .scalingo-watcher install --frozen-lockfile
 ```
 
@@ -72,7 +72,7 @@ Deux modes, au choix :
   compte. Rien à générer.
 - **Proxy FGP** : le secret `FGP_KEY` et le fichier `fgp.json`, versionné. Chaque
   blob borne ce que la clé autorise à une méthode et un chemin. Le détail est
-  dans [fgp.md](https://github.com/incubateur-ademe/scalingo-watcher/blob/v1.0.4/fgp.md).
+  dans [fgp.md](https://github.com/incubateur-ademe/scalingo-watcher/blob/v1.0.5/fgp.md).
 
 Pour le proxy, générer `fgp.json` depuis le manifeste :
 
