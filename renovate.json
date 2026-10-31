@@ -2,9 +2,9 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    "github>incubateur-ademe/scalingo-watcher//renovate/base#v1.0.4",
-    "github>incubateur-ademe/scalingo-watcher//renovate/metabase#v1.0.4",
-    "github>incubateur-ademe/scalingo-watcher//renovate/watcher#v1.0.4"
+    "github>incubateur-ademe/scalingo-watcher//renovate/base#v1.1.2",
+    "github>incubateur-ademe/scalingo-watcher//renovate/metabase#v1.1.2",
+    "github>incubateur-ademe/scalingo-watcher//renovate/watcher#v1.1.2"
   ],
   "enabledManagers": [
     "custom.regex",
