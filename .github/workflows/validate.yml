@@ -13,4 +13,4 @@ permissions:
 
 jobs:
   validate:
-    uses: incubateur-ademe/scalingo-watcher/.github/workflows/validate.yml@413dbe0792bd3552a888865b3b745012ef8ea665 # v1.4.0
+    uses: incubateur-ademe/scalingo-watcher/.github/workflows/validate.yml@85cab8794532c19a19eff84be5fb33d8e1a373f8 # v1.6.0
