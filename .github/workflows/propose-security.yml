@@ -1,0 +1,31 @@
+# Proposition des montees de version couvertes par un avis de securite du depot
+# amont, en pull request.
+#
+# Le cron reste commente jusqu'a la derniere etape de l'installation
+# (README.md), comme celui de la reconciliation.
+name: proposer les montees de securite
+
+on:
+  # schedule:
+  #   - cron: "41 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    # Aucun environment : le verdict se rend avec les avis de l'amont et le
+    # manifeste, sans acces a Scalingo, et ce job n'a pas a pouvoir lire la cle
+    # du proxy. PUSH_TOKEN n'est donc lu que s'il est aussi un secret du depot.
+    # Sinon la pull request part avec le GITHUB_TOKEN et ne declenche pas la
+    # validation.
+    concurrency:
+      group: scalingo-watcher-propose-security
+      cancel-in-progress: false
+    steps:
+      - uses: incubateur-ademe/scalingo-watcher/actions/propose-security@417a66c1c4b21ca06ea5310095253e253b0ab138 # v2.0.0
+        with:
+          push-token: ${{ secrets.PUSH_TOKEN }}

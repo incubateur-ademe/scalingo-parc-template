@@ -1,5 +1,5 @@
-# Declencheurs et permissions de la reconciliation, dont la logique vit dans le
-# workflow reutilisable de scalingo-watcher.
+# Declencheurs, job et verrou de la reconciliation, dont la logique vit dans
+# l'action reconcile de scalingo-watcher.
 #
 # Le push sur le manifeste et le cron restent commentes jusqu'a la derniere
 # etape de l'installation (README.md) : une reconciliation deploie, et le
@@ -32,23 +32,33 @@ permissions:
 
 jobs:
   reconcile:
-    uses: incubateur-ademe/scalingo-watcher/.github/workflows/reconcile.yml@413dbe0792bd3552a888865b3b745012ef8ea665 # v1.4.0
-    with:
-      environment: production
-      # Le cron et le push n'ont pas d'inputs : la comparaison ramene leur
-      # valeur absente a false.
-      dry_run: ${{ inputs.dry_run == true }}
-      # Notification Matrix (Tchap compris), facultative. Le jeton du compte bot
-      # va dans le secret MATRIX_ACCESS_TOKEN de l'environment.
-      # matrix-homeserver: https://matrix.agent.<domaine>.tchap.gouv.fr
-      # matrix-room-id: "!xxxxxxxx:agent.<domaine>.tchap.gouv.fr"
-    # Chaque secret est mappe, meme range dans l'environment : le job appele ne
-    # lit la valeur de l'environment que pour un secret que l'appelant lui passe.
-    # Un secret absent arrive vide.
-    secrets:
-      FGP_KEY: ${{ secrets.FGP_KEY }}
-      SCALINGO_API_TOKEN: ${{ secrets.SCALINGO_API_TOKEN }}
-      TEAMS_WEBHOOK: ${{ secrets.TEAMS_WEBHOOK }}
-      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-      MATRIX_ACCESS_TOKEN: ${{ secrets.MATRIX_ACCESS_TOKEN }}
-      PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
+    runs-on: ubuntu-latest
+    # Les secrets d'acces vivent dans cet environment, reserve a main par sa
+    # politique de branches.
+    environment: production
+    # Jamais deux convergences en parallele, et jamais annuler celle en cours :
+    # elle peut etre au milieu d'une sauvegarde ou d'un deploiement. Meme groupe
+    # que l'application, au seul niveau du job : declare aussi au niveau du
+    # workflow, il ferait annuler le run par GitHub pour interblocage. L'action
+    # validate refuse un appel qui s'en ecarte.
+    concurrency:
+      group: scalingo-apply
+      cancel-in-progress: false
+    steps:
+      - uses: incubateur-ademe/scalingo-watcher/actions/reconcile@417a66c1c4b21ca06ea5310095253e253b0ab138 # v2.0.0
+        with:
+          # Le cron et le push n'ont pas d'inputs : la comparaison ramene leur
+          # valeur absente a "false".
+          dry-run: ${{ inputs.dry_run == true }}
+          # Notification Matrix (Tchap compris), facultative. Le jeton du compte
+          # bot va dans le secret MATRIX_ACCESS_TOKEN de l'environment.
+          # matrix-homeserver: https://matrix.agent.<domaine>.tchap.gouv.fr
+          # matrix-room-id: "!xxxxxxxx:agent.<domaine>.tchap.gouv.fr"
+          # Chaque secret est passe, meme vide : l'action ne lit que ce qu'on
+          # lui donne, et validate refuse un input requis absent.
+          fgp-key: ${{ secrets.FGP_KEY }}
+          scalingo-api-token: ${{ secrets.SCALINGO_API_TOKEN }}
+          push-token: ${{ secrets.PUSH_TOKEN }}
+          teams-webhook: ${{ secrets.TEAMS_WEBHOOK }}
+          slack-webhook: ${{ secrets.SLACK_WEBHOOK }}
+          matrix-access-token: ${{ secrets.MATRIX_ACCESS_TOKEN }}

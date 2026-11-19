@@ -2,7 +2,7 @@
 
 Ce dépôt décrit un parc d'applications Scalingo tenu à jour par
 [scalingo-watcher](https://github.com/incubateur-ademe/scalingo-watcher). Il ne
-contient que des données. Le moteur, les workflows et les presets Renovate
+contient que des données. Le moteur, les actions et les presets Renovate
 viennent de l'outil, à une version épinglée.
 
 | Fichier | Rôle |
@@ -11,7 +11,7 @@ viennent de l'outil, à une version épinglée.
 | `lock.json` | Ce qui tourne réellement. Écrit par le moteur, jamais à la main. |
 | `fgp.json` | Blobs du proxy FGP, en accès par proxy uniquement. |
 | `renovate.json` | Veille des versions du parc et des mises à jour de l'outil. |
-| `.github/workflows/` | Appelants des workflows réutilisables de l'outil. |
+| `.github/workflows/` | Déclencheurs, runner, environment et verrou de chaque job, qui appelle une action de l'outil. |
 
 Le manifeste livré avec ce template est fictif. L'installation le remplace par
 celui du parc réel.
@@ -34,11 +34,11 @@ créées par GitHub.
 
 ### 2. Récupérer l'outil en local
 
-Dans le dépôt, au même emplacement que dans les workflows. Le dossier est
-ignoré par git.
+Dans le dépôt, au même emplacement que la copie qu'en font les actions en CI.
+Le dossier est ignoré par git.
 
 ```bash
-git clone --depth 1 --branch v1.4.0 https://github.com/incubateur-ademe/scalingo-watcher .scalingo-watcher
+git clone --depth 1 --branch v2.0.0 https://github.com/incubateur-ademe/scalingo-watcher .scalingo-watcher
 pnpm --dir .scalingo-watcher install --frozen-lockfile
 ```
 
@@ -72,7 +72,7 @@ Deux modes, au choix :
   compte. Rien à générer.
 - **Proxy FGP** : le secret `FGP_KEY` et le fichier `fgp.json`, versionné. Chaque
   blob borne ce que la clé autorise à une méthode et un chemin. Le détail est
-  dans [fgp.md](https://github.com/incubateur-ademe/scalingo-watcher/blob/v1.4.0/fgp.md).
+  dans [fgp.md](https://github.com/incubateur-ademe/scalingo-watcher/blob/v2.0.0/fgp.md).
 
 Pour le proxy, générer `fgp.json` depuis le manifeste :
 
@@ -118,9 +118,9 @@ gh secret set FGP_KEY --env production              # ou SCALINGO_API_TOKEN en a
 Sans politique de branches, toute branche du dépôt peut déclarer l'environment
 et lire ses secrets.
 
-Les appelants de `.github/workflows/` mappent déjà chaque secret : le job appelé
-ne lit la valeur de l'environment que pour un secret qu'on lui passe. Un secret
-ajouté plus tard à l'environment doit aussi figurer dans leur bloc `secrets:`.
+Les workflows de `.github/workflows/` passent déjà chaque secret à l'action, en
+input. Un secret absent de l'environment arrive vide, comme l'accès non retenu
+ou un canal de notification non configuré.
 
 Notifications aux changements d'état, facultatives et cumulables. Les secrets
 vont dans l'environment `production`.
@@ -159,6 +159,10 @@ GitHub Actions to create and approve pull requests » (Settings, Actions,
 General) pour que les montées de base soient proposées, et la validation ne se
 déclenche pas sur ces pull requests.
 
+La proposition des montées de sécurité n'a besoin d'aucun accès à Scalingo et
+ne déclare pas l'environment. Elle ouvre donc toujours sa pull request avec le
+`GITHUB_TOKEN`, ce qui demande la même case cochée.
+
 Un dépôt privé d'une organisation sur plan gratuit ne peut pas protéger sa
 branche.
 
@@ -166,8 +170,7 @@ branche.
 
 Installer l'[app Renovate](https://github.com/apps/renovate) sur le dépôt. Il
 contient déjà `renovate.json`, donc Renovate n'ouvre pas de pull request
-d'accueil. Il ouvre directement celle qui épingle les workflows appelants par
-sha (`@<sha> # vX.Y.Z`) : la fusionner.
+d'accueil. Les workflows épinglent déjà l'outil par sha (`@<sha> # vX.Y.Z`).
 
 ### 9. Premier plan en CI
 
@@ -179,7 +182,7 @@ tableau de bord.
 ### 10. Activer les déclencheurs
 
 Décommenter `push` et `schedule` dans `.github/workflows/reconcile.yml`, et
-`schedule` dans `.github/workflows/propose-db.yml`, puis pousser. Chaque fusion
+`schedule` dans `propose-db.yml` et `propose-security.yml`, puis pousser. Chaque fusion
 du manifeste déclenche alors la convergence, et le cron rattrape ce qui a
 divergé. Le premier passage réel, au prochain créneau du cron ou lancé à la
 main, ouvre l'issue étiquetée `etat-parc`.
@@ -194,11 +197,13 @@ relancer un workflow à la main.
   applicatif de chaque app. Les correctifs sont fusionnés seuls, les montées
   fonctionnelles attendent une relecture.
 - Sur chaque pull request, « valider le manifeste » publie en commentaire ce que
-  la fusion entraînera.
+  la fusion entraînera, et contrôle les workflows du parc.
 - La réconciliation relève l'état réel, signale les dérives, puis fait converger
   le parc. L'issue `etat-parc` décrit l'état courant.
 - « proposer les montées de base » ouvre une pull request quand une base pilotée
   peut monter d'une version.
+- « proposer les montées de sécurité » ouvre une pull request quand un avis de
+  sécurité du dépôt amont d'un outil touche la version d'une app.
 
 En local, depuis la racine du dépôt :
 
@@ -209,13 +214,44 @@ node .scalingo-watcher/src/apply.ts --validate  # schema et annotations du manif
 node .scalingo-watcher/src/apply.ts --prune     # retire du lock les apps sorties du manifeste
 ```
 
+## Workflows du parc
+
+Chaque workflow de `.github/workflows/` déclare les déclencheurs, le runner,
+l'environment, les permissions et le groupe de concurrence de son job. Le job
+n'a qu'un pas, l'action de l'outil, qui récupère elle-même le dépôt et l'outil.
+Ces réglages appartiennent au parc, qui doit les garder :
+
+- Les jobs de `reconcile.yml` et `apply.yml` déclarent le groupe
+  `scalingo-apply` avec `cancel-in-progress: false`. C'est la seule garde contre
+  deux convergences en parallèle, et le nom doit rester exactement celui-ci.
+  Redéclaré au niveau du workflow, ce groupe ferait annuler le run par GitHub
+  pour interblocage.
+- Aucun `cancel-in-progress` ne vaut autre chose que `false`, à aucun niveau.
+  Une annulation peut couper un passage au milieu d'une sauvegarde ou d'un
+  déploiement.
+- Chaque proposition garde son propre groupe. Deux propositions en parallèle se
+  disputeraient la même branche.
+- Chaque input requis par l'action s'écrit, même quand le secret qu'il porte
+  n'existe pas. GitHub ne contrôle pas les inputs d'une action, et un input
+  absent arrive vide.
+
+La validation refuse en pull request un workflow qui manque à l'une de ces
+règles, ou qui appelle deux versions différentes de l'outil.
+
+Les jobs tournent sur `ubuntu-latest`. Des runners auto-hébergés conviennent
+s'ils ont `bash`, `git`, `tar` et `gh` : changer `runs-on` dans chaque workflow.
+
 ## Mises à jour de l'outil
 
 Une release de scalingo-watcher arrive dans une seule pull request Renovate,
-1 jour après sa publication : elle avance le sha des workflows appelants et le
+1 jour après sa publication : elle avance le sha des actions appelées et le
 tag des presets de `renovate.json`. La validation y tourne avec la nouvelle
 version. Elle n'est jamais fusionnée automatiquement : la fusionner après
 lecture du CHANGELOG de l'outil.
+
+Une montée majeure peut demander de modifier les workflows du parc. La pull
+request de Renovate ne le fait pas, et le CHANGELOG de l'outil décrit la
+migration.
 
 Mettre ensuite le clone local à la même version :
 
