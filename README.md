@@ -160,8 +160,12 @@ General) pour que les montées de base soient proposées, et la validation ne se
 déclenche pas sur ces pull requests.
 
 La proposition des montées de sécurité n'a besoin d'aucun accès à Scalingo et
-ne déclare pas l'environment. Elle ouvre donc toujours sa pull request avec le
-`GITHUB_TOKEN`, ce qui demande la même case cochée.
+ne déclare pas l'environment. Elle ouvre donc sa pull request avec le
+`GITHUB_TOKEN`, ce qui demande la même case cochée, et la validation ne s'y
+déclenche pas non plus.
+
+Pour lancer la validation sur une pull request ouverte avec le `GITHUB_TOKEN`,
+la fermer puis la rouvrir.
 
 Un dépôt privé d'une organisation sur plan gratuit ne peut pas protéger sa
 branche.
@@ -182,9 +186,9 @@ tableau de bord.
 ### 10. Activer les déclencheurs
 
 Décommenter `push` et `schedule` dans `.github/workflows/reconcile.yml`, et
-`schedule` dans `propose-db.yml` et `propose-security.yml`, puis pousser. Chaque fusion
-du manifeste déclenche alors la convergence, et le cron rattrape ce qui a
-divergé. Le premier passage réel, au prochain créneau du cron ou lancé à la
+`schedule` dans `propose-db.yml` et `propose-security.yml`, puis pousser.
+Chaque fusion du manifeste déclenche alors la convergence, et le cron rattrape
+ce qui a divergé. Le premier passage réel, au prochain créneau du cron ou lancé à la
 main, ouvre l'issue étiquetée `etat-parc`.
 
 GitHub coupe les crons d'un dépôt public sans activité depuis 60 jours. Les
@@ -196,8 +200,9 @@ relancer un workflow à la main.
 - Renovate propose les versions de l'outil (Metabase) et les commits du dépôt
   applicatif de chaque app. Les correctifs sont fusionnés seuls, les montées
   fonctionnelles attendent une relecture.
-- Sur chaque pull request, « valider le manifeste » publie en commentaire ce que
-  la fusion entraînera, et contrôle les workflows du parc.
+- Sur chaque pull request, sauf celles ouvertes avec le `GITHUB_TOKEN` (étape
+  7), « valider le manifeste » publie en commentaire ce que la fusion
+  entraînera, et contrôle les workflows du parc.
 - La réconciliation relève l'état réel, signale les dérives, puis fait converger
   le parc. L'issue `etat-parc` décrit l'état courant.
 - « proposer les montées de base » ouvre une pull request quand une base pilotée
@@ -222,30 +227,33 @@ n'a qu'un pas, l'action de l'outil, qui récupère elle-même le dépôt et l'ou
 Ces réglages appartiennent au parc, qui doit les garder :
 
 - Les jobs de `reconcile.yml` et `apply.yml` déclarent le groupe
-  `scalingo-apply` avec `cancel-in-progress: false`. C'est la seule garde contre
-  deux convergences en parallèle, et le nom doit rester exactement celui-ci.
-  Redéclaré au niveau du workflow, ce groupe ferait annuler le run par GitHub
-  pour interblocage.
+  `scalingo-apply` avec `cancel-in-progress: false` et `queue: max`. C'est la
+  seule garde contre deux convergences en parallèle, et le nom doit rester
+  exactement celui-ci. Sans `queue: max`, GitHub ne garde qu'un passage en
+  attente et annule le précédent. Redéclaré au niveau du workflow, ce groupe
+  ferait annuler le run par GitHub pour interblocage.
 - Aucun `cancel-in-progress` ne vaut autre chose que `false`, à aucun niveau.
   Une annulation peut couper un passage au milieu d'une sauvegarde ou d'un
   déploiement.
-- Chaque proposition garde son propre groupe. Deux propositions en parallèle se
-  disputeraient la même branche.
+- Chaque proposition garde son propre groupe, distinct de `scalingo-apply`.
+  Deux propositions en parallèle se disputeraient la même branche.
 - Chaque input requis par l'action s'écrit, même quand le secret qu'il porte
   n'existe pas. GitHub ne contrôle pas les inputs d'une action, et un input
   absent arrive vide.
 
-La validation refuse en pull request un workflow qui manque à l'une de ces
-règles, ou qui appelle deux versions différentes de l'outil.
+La validation refuse en pull request une convergence hors de `scalingo-apply`
+ou sans `queue: max`, une proposition sans groupe ou sous `scalingo-apply`, un
+`cancel-in-progress` autre que `false`, un input requis absent, et des appels à
+deux versions différentes de l'outil.
 
 Les jobs tournent sur `ubuntu-latest`. Des runners auto-hébergés conviennent
 s'ils ont `bash`, `git`, `tar` et `gh` : changer `runs-on` dans chaque workflow.
 
 ## Mises à jour de l'outil
 
-Une release de scalingo-watcher arrive dans une seule pull request Renovate,
-1 jour après sa publication : elle avance le sha des actions appelées et le
-tag des presets de `renovate.json`. La validation y tourne avec la nouvelle
+Une release de scalingo-watcher arrive dans une seule pull request Renovate, au
+premier passage de Renovate après sa publication. Elle avance le sha des
+actions appelées et le tag des presets de `renovate.json`. La validation y tourne avec la nouvelle
 version. Elle n'est jamais fusionnée automatiquement : la fusionner après
 lecture du CHANGELOG de l'outil.
 

@@ -44,6 +44,10 @@ jobs:
     concurrency:
       group: scalingo-apply
       cancel-in-progress: false
+      # Par defaut, GitHub ne garde qu'un passage en attente et annule le
+      # precedent : une reprise annulerait un passage ordinaire, seul a pouvoir
+      # ouvrir un deploiement. Tous attendent donc leur tour.
+      queue: max
     steps:
       - uses: incubateur-ademe/scalingo-watcher/actions/reconcile@417a66c1c4b21ca06ea5310095253e253b0ab138 # v2.0.0
         with:
