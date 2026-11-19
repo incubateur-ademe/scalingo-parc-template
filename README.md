@@ -139,6 +139,22 @@ gh secret set MATRIX_ACCESS_TOKEN --env production
 
 Sans canal configuré, seule l'issue de tableau de bord est tenue à jour.
 
+Veille de silence, recommandée. Les notifications partent du job de
+réconciliation, et un job qui ne démarre plus (facturation refusée, cron
+arrêté) ne prévient personne. Après chaque passage planifié, la réconciliation
+envoie un GET à l'URL du secret `HEARTBEAT_URL`. Un service de veille extérieur
+à GitHub alerte quand ces battements cessent. Mise en place de référence : un
+check pulse [updown.io](https://updown.io/doc/how-pulse-cron-monitoring-works)
+d'une période de 24 heures, avec deux destinataires indépendants.
+
+```bash
+gh secret set HEARTBEAT_URL --env production
+```
+
+Plusieurs URL séparées par des blancs battent chacune. Le détail est dans la
+section « Veille de silence » du
+[README de l'outil](https://github.com/incubateur-ademe/scalingo-watcher#veille-de-silence).
+
 ### 7. Protéger `main` (recommandé)
 
 Avec une branche protégée, le push du lock et l'ouverture des pull requests de

@@ -49,7 +49,7 @@ jobs:
       # ouvrir un deploiement. Tous attendent donc leur tour.
       queue: max
     steps:
-      - uses: incubateur-ademe/scalingo-watcher/actions/reconcile@417a66c1c4b21ca06ea5310095253e253b0ab138 # v2.0.0
+      - uses: incubateur-ademe/scalingo-watcher/actions/reconcile@65050c37b2cfed3fb496ae6211e673b7b7ec88f4 # v2.0.0
         with:
           # Le cron et le push n'ont pas d'inputs : la comparaison ramene leur
           # valeur absente a "false".
@@ -66,3 +66,6 @@ jobs:
           teams-webhook: ${{ secrets.TEAMS_WEBHOOK }}
           slack-webhook: ${{ secrets.SLACK_WEBHOOK }}
           matrix-access-token: ${{ secrets.MATRIX_ACCESS_TOKEN }}
+          # Veille de silence, facultative : URL du service dans le secret
+          # HEARTBEAT_URL de l'environment (README, etape 6).
+          heartbeat-url: ${{ secrets.HEARTBEAT_URL }}
