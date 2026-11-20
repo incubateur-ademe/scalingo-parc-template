@@ -24,23 +24,31 @@ permissions:
 
 jobs:
   apply:
-    uses: incubateur-ademe/scalingo-watcher/.github/workflows/apply.yml@413dbe0792bd3552a888865b3b745012ef8ea665 # v1.4.0
-    with:
-      environment: production
-      dry_run: ${{ inputs.dry_run }}
-      app: ${{ inputs.app }}
-      force: ${{ inputs.force }}
-      # Notification Matrix (Tchap compris), facultative. Le jeton du compte bot
-      # va dans le secret MATRIX_ACCESS_TOKEN de l'environment.
-      # matrix-homeserver: https://matrix.agent.<domaine>.tchap.gouv.fr
-      # matrix-room-id: "!xxxxxxxx:agent.<domaine>.tchap.gouv.fr"
-    # Chaque secret est mappe, meme range dans l'environment : le job appele ne
-    # lit la valeur de l'environment que pour un secret que l'appelant lui passe.
-    # Un secret absent arrive vide.
-    secrets:
-      FGP_KEY: ${{ secrets.FGP_KEY }}
-      SCALINGO_API_TOKEN: ${{ secrets.SCALINGO_API_TOKEN }}
-      TEAMS_WEBHOOK: ${{ secrets.TEAMS_WEBHOOK }}
-      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-      MATRIX_ACCESS_TOKEN: ${{ secrets.MATRIX_ACCESS_TOKEN }}
-      PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
+    runs-on: ubuntu-latest
+    environment: production
+    # Meme verrou que la reconciliation : jamais deux convergences en parallele.
+    concurrency:
+      group: scalingo-apply
+      cancel-in-progress: false
+      # Par defaut, GitHub ne garde qu'un passage en attente et annule le
+      # precedent : une reprise annulerait un passage ordinaire, seul a pouvoir
+      # ouvrir un deploiement. Tous attendent donc leur tour.
+      queue: max
+    steps:
+      - uses: incubateur-ademe/scalingo-watcher/actions/apply@7b22759f100a72d60d0e3ec8d84fd430b9770f9a # v2.0.0
+        with:
+          dry-run: ${{ inputs.dry_run }}
+          app: ${{ inputs.app }}
+          force: ${{ inputs.force }}
+          # Notification Matrix (Tchap compris), facultative. Le jeton du compte
+          # bot va dans le secret MATRIX_ACCESS_TOKEN de l'environment.
+          # matrix-homeserver: https://matrix.agent.<domaine>.tchap.gouv.fr
+          # matrix-room-id: "!xxxxxxxx:agent.<domaine>.tchap.gouv.fr"
+          # Chaque secret est passe, meme vide : l'action ne lit que ce qu'on
+          # lui donne, et validate refuse un input requis absent.
+          fgp-key: ${{ secrets.FGP_KEY }}
+          scalingo-api-token: ${{ secrets.SCALINGO_API_TOKEN }}
+          push-token: ${{ secrets.PUSH_TOKEN }}
+          teams-webhook: ${{ secrets.TEAMS_WEBHOOK }}
+          slack-webhook: ${{ secrets.SLACK_WEBHOOK }}
+          matrix-access-token: ${{ secrets.MATRIX_ACCESS_TOKEN }}
