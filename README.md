@@ -262,6 +262,12 @@ ou sans `queue: max`, une proposition sans groupe ou sous `scalingo-apply`, un
 `cancel-in-progress` autre que `false`, un input requis absent, et des appels à
 deux versions différentes de l'outil.
 
+Le déploiement asynchrone est facultatif et demande un relais. `reconcile.yml`
+déclare déjà l'input `resume`, que le relais pose à `true`. Une fois le relais
+et les notifiers en place, décommenter `async: "true"` dans ce workflow. La mise
+en route est décrite dans la section « Relais et notifiers » du
+[FEATURES de l'outil](https://github.com/incubateur-ademe/scalingo-watcher/blob/main/FEATURES.md#relais-et-notifiers).
+
 Les jobs tournent sur `ubuntu-latest`. Des runners auto-hébergés conviennent
 s'ils ont `bash`, `git`, `tar` et `gh` : changer `runs-on` dans chaque workflow.
 

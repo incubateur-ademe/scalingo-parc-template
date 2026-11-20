@@ -35,7 +35,7 @@ jobs:
       # ouvrir un deploiement. Tous attendent donc leur tour.
       queue: max
     steps:
-      - uses: incubateur-ademe/scalingo-watcher/actions/apply@65050c37b2cfed3fb496ae6211e673b7b7ec88f4 # v2.0.0
+      - uses: incubateur-ademe/scalingo-watcher/actions/apply@7b22759f100a72d60d0e3ec8d84fd430b9770f9a # v2.0.0
         with:
           dry-run: ${{ inputs.dry_run }}
           app: ${{ inputs.app }}
