@@ -221,6 +221,12 @@ relancer un workflow à la main.
   entraînera, et contrôle les workflows du parc.
 - La réconciliation relève l'état réel, signale les dérives, puis fait converger
   le parc. L'issue `etat-parc` décrit l'état courant.
+- Entre 0 h et 5 h UTC, la réconciliation refait à l'identique, sans
+  sauvegarde, le build d'une app conforme vieux de plus de 7 jours. Elle ne le
+  fait que si la version en service est attestée par un déploiement de l'outil
+  ou un `--force --app`. D'ici là, une échéance du tableau de bord signale le
+  build. Un rebuild en échec met l'app en quarantaine et suspend ces rebuilds
+  pour tout le parc.
 - « proposer les montées de base » ouvre une pull request quand une base pilotée
   peut monter d'une version.
 - « proposer les montées de sécurité » ouvre une pull request quand un avis de
